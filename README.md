@@ -17,9 +17,9 @@ Enjoy!
 Resources
 Read or watch:
 
-[Node JS getting started](https://nodejs.org/en/learn/getting-started)
+[Node JS getting started](https://nodejs.org/en/learn/getting-started/introduction-to-nodejs)
 [Process API doc](https://node.readthedocs.io/en/latest/api/process/)
-[Express getting started](https://expressjs.com/en/starter)
+[Express getting started](https://expressjs.com/en/starter/examples.html)
 [Mocha documentation](https://mochajs.org/)
 [Nodemon documentation](https://github.com/remy/nodemon#nodemon)
 [MongoDB](https://github.com/mongodb/node-mongodb-native)
