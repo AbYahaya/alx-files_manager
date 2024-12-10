@@ -109,6 +109,99 @@ class FilesController {
 
     return res.status(200).json(files);
   }
+
+  static async putPublish(req, res) {
+    const token = req.header('X-Token');
+    const userId = await redisClient.get(`auth_${token}`);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const fileId = req.params.id;
+    const file = await dbClient.db.collection('files').findOne({ _id: dbClient.getObjectId(fileId), userId });
+    if (!file) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    await dbClient.db.collection('files').updateOne({ _id: file._id }, { $set: { isPublic: true } });
+
+    const updatedFile = await dbClient.db.collection('files').findOne({ _id: file._id });
+    return res.status(200).json({
+      id: updatedFile._id,
+      userId: updatedFile.userId,
+      name: updatedFile.name,
+      type: updatedFile.type,
+      isPublic: updatedFile.isPublic,
+      parentId: updatedFile.parentId || null,
+    });
+  }
+
+  static async putUnpublish(req, res) {
+    const token = req.header('X-Token');
+    const userId = await redisClient.get(`auth_${token}`);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const fileId = req.params.id;
+    const file = await dbClient.db.collection('files').findOne({ _id: dbClient.getObjectId(fileId), userId });
+    if (!file) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    await dbClient.db.collection('files').updateOne({ _id: file._id }, { $set: { isPublic: false } });
+
+    const updatedFile = await dbClient.db.collection('files').findOne({ _id: file._id });
+    return res.status(200).json({
+      id: updatedFile._id,
+      userId: updatedFile.userId,
+      name: updatedFile.name,
+      type: updatedFile.type,
+      isPublic: updatedFile.isPublic,
+      parentId: updatedFile.parentId || null,
+    });
+  }
+
+  static async getFile(req, res) {
+    const fileId = req.params.id;
+    const token = req.headers['x-token'];
+    const user = await dbClient.findUserByToken(token);
+
+    // Retrieve the file document from the database
+    const file = await dbClient.getFileById(fileId);
+
+    if (!file) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    // Check if the file is public or belongs to the authenticated user
+    if (!file.isPublic) {
+      if (!user || file.userId !== user._id.toString()) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+    }
+
+    // Ensure the file type is not "folder"
+    if (file.type === 'folder') {
+      return res.status(400).json({ error: "A folder doesn't have content" });
+    }
+
+    // Verify that the file exists locally
+    if (!fs.existsSync(file.localPath)) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    try {
+      // Read and return the file content with the correct MIME type
+      const fileContent = await readFileAsync(file.localPath);
+      const mimeType = mime.lookup(file.name) || 'application/octet-stream';
+
+      res.setHeader('Content-Type', mimeType);
+      return res.status(200).send(fileContent);
+    } catch (error) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
 }
 
 export default FilesController;
