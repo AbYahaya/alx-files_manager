@@ -36,6 +36,17 @@ class DBClient {
         if (!this.db) return 0;
         return this.db.collection('files').countDocuments();
     }
+
+    async findUserByToken(token) {
+        if (!token) return null;
+        const user = await this.db.collection('users').findOne({ token });
+        return user;
+    }
+
+    async getFileById(id) {
+        const file = await this.db.collection('files').findOne({ _id: new ObjectId(id) });
+        return file;
+    }
 }
 
 const dbClient = new DBClient();
